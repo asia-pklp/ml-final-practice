@@ -1,0 +1,36 @@
+FROM nvidia/cuda:13.2.0-base-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Location of source code
+ENV PROJECT_ROOT /opt/project
+RUN mkdir -p $PROJECT_ROOT
+WORKDIR $PROJECT_ROOT
+
+# Install Python 3.11, build tools, and system libs
+RUN apt-get update && \
+    apt-get install -y \
+        python3.11 python3.11-venv python3.11-dev \
+        curl build-essential gcc g++ \
+        libssl-dev libffi-dev \
+        libgl1-mesa-glx libglib2.0-0 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install pip and setuptools
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.11 get-pip.py && \
+    python3.11 -m pip install "setuptools<70" wheel && \
+    rm get-pip.py
+
+# Copying dependencies
+COPY ./requirements.txt .
+RUN python3.11 -m pip install -r requirements.txt
+
+COPY ./src ./src
+COPY ./dataset ./dataset
+COPY ./tmp ./tmp
+
+RUN apt-get update -y && \
+    apt-get install -y vim curl && \
+    rm -rf /var/lib/apt/lists/*
